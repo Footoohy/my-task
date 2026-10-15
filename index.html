@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>TaskFlow Pro 3.0 | مدیریت کارها با تقویم شمسی و فیلتر تعطیلات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Vazirmatn', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 9999px; }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .alarm-pulse { animation: pulse-ring 1.5s infinite; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 h-screen flex flex-col overflow-hidden select-none">
+
+    <!-- هدر بالا -->
+    <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-4 lg:px-6 flex items-center justify-between shrink-0 z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
+                ✓
+            </div>
+            <div>
+                <h1 class="font-bold text-base lg:text-lg tracking-tight flex items-center gap-2">
+                    TaskFlow Pro
+                    <span class="text-[11px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2 py-0.5 rounded-full font-normal">تقویم شمسی ۳.۰</span>
+                </h1>
+                <p id="liveJalaliDate" class="text-xs text-slate-500 dark:text-slate-400"></p>
+            </div>
+        </div>
+
+        <!-- نوار جستجو -->
+        <div class="hidden md:flex items-center flex-1 max-w-md mx-6">
+            <div class="relative w-full">
+                <input type="text" id="searchInput" oninput="renderApp()" placeholder="جستجو در کارها، یادداشت‌ها..." 
+                    class="w-full bg-slate-100 dark:bg-slate-800/90 border border-transparent focus:border-blue-500 rounded-xl pr-10 pl-4 py-2 text-sm outline-none transition">
+                <span class="absolute right-3 top-2.5 text-slate-400">🔍</span>
+            </div>
+        </div>
+
+        <!-- دکمه‌های عملیاتی و تنظیمات روزهای غیرکاری -->
+        <div class="flex items-center gap-2">
+            <button onclick="openOffDaysModal()" id="offDaysHeaderBtn" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 transition" title="تنظیم روزهای تعطیل و خاموشی خودکار آلارم">
+                <span>🔕</span>
+                <span id="offDaysBtnLabel" class="hidden sm:inline">تعطیلات: ۵شنبه و جمعه</span>
+            </button>
+
+            <button onclick="openPlanMyDay()" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 transition">
+                <span>☀️</span>
+                <span class="hidden lg:inline">برنامه روز من</span>
+            </button>
+
+            <button onclick="requestNotificationPermission()" id="notifBtn" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 transition">
+                <span id="notifIcon">🔔</span>
+            </button>
+
+            <button onclick="openSyncModal()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm transition" title="پشتیبان‌گیری و انتقال">
+                🔄
+            </button>
+
+            <button onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm transition">
+                🌓
+            </button>
+        </div>
+    </header>
+
+    <!-- بنر هشدار در صورتی که امروز روز غیرکاری باشد -->
+    <div id="holidayBanner" class="hidden bg-rose-500/10 border-b border-rose-500/20 text-rose-500 px-4 py-1.5 text-xs font-medium text-center">
+        🔕 امروز به عنوان «روز غیرکاری» تنظیم شده است. آلارم‌های کاری بی‌صدا هستند (مگر کارهای دارای تیک استثنا).
+    </div>
+
+    <!-- بدنه اصلی -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- سایدبار راست -->
+        <aside class="w-64 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hidden md:flex flex-col justify-between p-4 shrink-0">
+            <div class="space-y-6">
+                <div class="space-y-1">
+                    <p class="text-[11px] font-bold text-slate-400 px-3 mb-2">نماهای هوشمند</p>
+                    <button onclick="setFilter('all')" id="nav-all" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition">
+                        <span class="flex items-center gap-2.5"><span>📋</span> همه کارها</span>
+                        <span id="count-all" class="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800">0</span>
+                    </button>
+                    <button onclick="setFilter('myday')" id="nav-myday" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition">
+                        <span class="flex items-center gap-2.5"><span>☀️</span> روز من (Focus)</span>
+                        <span id="count-myday" class="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800">0</span>
+                    </button>
+                    <button onclick="setFilter('today')" id="nav-today" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition">
+                        <span class="flex items-center gap-2.5"><span>📅</span> امروز</span>
+                        <span id="count-today" class="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800">0</span>
+                    </button>
+                    <button onclick="setFilter('upcoming')" id="nav-upcoming" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition">
+                        <span class="flex items-center gap-2.5"><span>⏳</span> فردا و آینده</span>
+                        <span id="count-upcoming" class="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800">0</span>
+                    </button>
+                    <button onclick="setFilter('high')" id="nav-high" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition">
+                        <span class="flex items-center gap-2.5"><span>🔥</span> اولویت بالا</span>
+                        <span id="count-high" class="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800">0</span>
+                    </button>
+                </div>
+
+                <div class="space-y-1">
+                    <p class="text-[11px] font-bold text-slate-400 px-3 mb-2">لیست‌های من</p>
+                    <div id="categoryList" class="space-y-1"></div>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200/70 dark:from-slate-800/80 dark:to-slate-900 border border-slate-200/80 dark:border-slate-700/60">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold">پیشرفت کارهای امروز</span>
+                    <span id="progressPercent" class="text-xs font-bold text-blue-500">0%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-300 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div id="progressBar" class="h-full bg-blue-600 transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <p id="progressSubtext" class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">آماده شروع!</p>
+            </div>
+        </aside>
+
+        <!-- بخش میانی: ثبت سریع با تقویم شمسی و لیست کارها -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+            
+            <!-- باکس ثبت کار جدید با تقویم شمسی بومی -->
+            <div class="p-4 lg:p-6 pb-2 shrink-0">
+                <div class="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-3.5 shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="text-blue-500 text-xl font-bold pr-1">+</span>
+                        <input type="text" id="quickTitle" onkeydown="if(event.key==='Enter') addNewTask()" 
+                            placeholder="یک کار یا یادآور جدید بنویسید و Enter بزنید..." 
+                            class="w-full bg-transparent text-sm lg:text-base outline-none placeholder:text-slate-400">
+                        <button onclick="addNewTask()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-xl text-xs lg:text-sm font-bold shrink-0 transition shadow-sm shadow-blue-500/20">
+                            ثبت کار
+                        </button>
+                    </div>
+
+                    <!-- نوار ابزار انتخاب تاریخ شمسی و ویژگی‌ها -->
+                    <div class="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                        
+                        <!-- دکمه باز کردن تقویم شمسی اختصاصی -->
+                        <button onclick="openJalaliPicker('quick')" id="quickJalaliBtn" class="flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-3 py-1.5 rounded-xl font-medium transition">
+                            <span>📅</span>
+                            <span id="quickJalaliLabel">انتخاب تاریخ و ساعت شمسی</span>
+                        </button>
+                        <button onclick="clearQuickDate()" id="clearQuickDateBtn" class="hidden text-rose-500 hover:bg-rose-500/10 px-2 py-1 rounded-lg text-xs" title="حذف تاریخ">✕</button>
+
+                        <select id="quickCategory" class="bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-xl outline-none">
+                            <option value="work">💼 کاری و صنعتی</option>
+                            <option value="personal">🏠 شخصی</option>
+                            <option value="shopping">🛒 خرید و تدارکات</option>
+                            <option value="finance">💳 مالی و حسابداری</option>
+                        </select>
+
+                        <select id="quickPriority" class="bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-xl outline-none">
+                            <option value="medium">⚡ اولویت عادی</option>
+                            <option value="high">🔥 اولویت بالا (فوری)</option>
+                            <option value="low">🌱 اولویت کم</option>
+                        </select>
+
+                        <select id="quickRepeat" class="bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-xl outline-none">
+                            <option value="none">🔁 بدون تکرار</option>
+                            <option value="workdays">🏢 هر روز کاری (غیر از تعطیلات)</option>
+                            <option value="daily">📅 هر روز هفته</option>
+                            <option value="weekly">📆 هر هفته</option>
+                        </select>
+
+                        <label class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded-xl cursor-pointer select-none" title="اگر تیک بزنید، حتی در ۵شنبه و جمعه هم آلارم می‌زند">
+                            <input type="checkbox" id="quickForceHoliday" class="rounded text-blue-600">
+                            <span class="text-[11px]">زنگ در روز تعطیل</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- هدر لیست -->
+            <div class="px-4 lg:px-6 py-2 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                    <h2 id="currentViewTitle" class="font-bold text-lg">📋 همه کارها</h2>
+                </div>
+                <button onclick="clearCompleted()" class="text-xs text-slate-400 hover:text-rose-500 transition">پاکسازی انجام‌شده‌ها</button>
+            </div>
+
+            <!-- لیست کارها -->
+            <div id="tasksContainer" class="flex-1 overflow-y-auto px-4 lg:px-6 pb-24 md:pb-6 space-y-6"></div>
+        </main>
+
+        <!-- پنل جزئیات تسک (سمت چپ) -->
+        <aside id="detailDrawer" class="w-full sm:w-96 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col justify-between p-5 shrink-0 fixed md:static inset-0 z-30 hidden">
+            <div class="overflow-y-auto space-y-4 flex-1 pl-1">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <span class="text-xs font-bold text-slate-400">ویرایش و چک‌لیست مراحل</span>
+                    <button onclick="closeDetailDrawer()" class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-500/20 hover:text-rose-500 text-xs">✕ بستن</button>
+                </div>
+
+                <div>
+                    <label class="text-[11px] text-slate-400 block mb-1">عنوان کار</label>
+                    <input type="text" id="detailTitle" onchange="saveDetailChanges()" class="w-full font-bold text-sm bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 outline-none focus:border-blue-500">
+                </div>
+
+                <button id="detailMyDayBtn" onclick="toggleDetailMyDay()" class="w-full py-2 px-4 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition"></button>
+
+                <!-- انتخابگر تاریخ شمسی در پنل جزئیات -->
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700/70 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold">⏰ زمان یادآور (شمسی):</span>
+                        <button onclick="openJalaliPicker('detail')" class="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg font-medium">تغییر زمان</button>
+                    </div>
+                    <p id="detailJalaliDisplay" class="text-xs text-blue-500 font-semibold">بدون یادآور</p>
+
+                    <label class="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700/60 cursor-pointer">
+                        <input type="checkbox" id="detailForceHoliday" onchange="saveDetailChanges()" class="rounded text-blue-600">
+                        <span class="text-xs text-slate-600 dark:text-slate-300">استثنا: در روزهای غیرکاری (۵شنبه/جمعه) هم زنگ بزند</span>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">نوع تکرار</label>
+                        <select id="detailRepeat" onchange="saveDetailChanges()" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2 outline-none">
+                            <option value="none">بدون تکرار</option>
+                            <option value="workdays">هر روز کاری</option>
+                            <option value="daily">هر روز</option>
+                            <option value="weekly">هر هفته</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">اولویت</label>
+                        <select id="detailPriority" onchange="saveDetailChanges()" class="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2 outline-none">
+                            <option value="low">🌱 کم</option>
+                            <option value="medium">⚡ عادی</option>
+                            <option value="high">🔥 فوری و مهم</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- زیرتسک‌ها -->
+                <div class="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-3.5 border border-slate-200/60 dark:border-slate-800">
+                    <label class="text-xs font-bold block mb-2">📋 مراحل انجام (Subtasks)</label>
+                    <div id="subtasksList" class="space-y-2 mb-3"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="newSubtaskInput" onkeydown="if(event.key==='Enter') addSubtask()" placeholder="افزودن مرحله جدید..." class="flex-1 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 outline-none">
+                        <button onclick="addSubtask()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium">+</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold block mb-1">📝 یادداشت تکمیلی</label>
+                    <textarea id="detailNotes" oninput="saveDetailChanges()" rows="3" placeholder="توضیحات فنی، شماره تماس یا لینک..." class="w-full text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-blue-500 resize-none"></textarea>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                <button onclick="playSynthesizedAlarmBeep()" class="text-xs text-blue-500 hover:underline">🔊 تست صدای زنگ</button>
+                <button onclick="deleteSelectedTask()" class="bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white px-3.5 py-2 rounded-xl text-xs font-medium transition">🗑 حذف کار</button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- مودال تقویم شمسی اختصاصی (Custom Jalali Date & Time Picker) -->
+    <div id="jalaliPickerModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-sm w-full p-5 shadow-2xl">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                <h3 class="font-bold text-sm flex items-center gap-1.5">📅 انتخاب تاریخ و ساعت شمسی</h3>
+                <button onclick="closeJalaliPicker()" class="text-slate-400 hover:text-rose-500 text-sm">✕</button>
+            </div>
+
+            <!-- دکمه‌های انتخاب سریع -->
+            <div class="grid grid-cols-3 gap-1.5 mb-3">
+                <button onclick="selectQuickPreset(0, 15)" class="bg-slate-100 dark:bg-slate-800 hover:bg-blue-500/20 hover:text-blue-500 py-1.5 rounded-lg text-[11px] font-medium transition">+۱۵ دقیقه دیگر</button>
+                <button onclick="selectQuickPreset(1, 0)" class="bg-slate-100 dark:bg-slate-800 hover:bg-blue-500/20 hover:text-blue-500 py-1.5 rounded-lg text-[11px] font-medium transition">فردا ۹ صبح</button>
+                <button onclick="selectNextWorkdayPreset()" class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 py-1.5 rounded-lg text-[11px] font-medium transition">اولین روز کاری</button>
+            </div>
+
+            <!-- تغییر ماه و سال شمسی -->
+            <div class="flex items-center justify-between bg-slate-100 dark:bg-slate-800/80 rounded-xl px-3 py-2 mb-3">
+                <button onclick="changePickerMonth(-1)" class="px-2 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-bold">❮ ماه قبل</button>
+                <span id="pickerMonthYearLabel" class="font-bold text-sm text-blue-500">مهر ۱۴۰۵</span>
+                <button onclick="changePickerMonth(1)" class="px-2 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-bold">ماه بعد ❯</button>
+            </div>
+
+            <!-- سرستون روزهای هفته -->
+            <div class="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 mb-1">
+                <span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span class="text-rose-400">پ</span><span class="text-rose-500">ج</span>
+            </div>
+
+            <!-- شبکه روزهای ماه شمسی -->
+            <div id="pickerDaysGrid" class="grid grid-cols-7 gap-1 text-center mb-4"></div>
+
+            <!-- انتخاب ساعت و دقیقه -->
+            <div class="bg-slate-100 dark:bg-slate-800/70 rounded-2xl p-3 mb-4 flex items-center justify-between">
+                <span class="text-xs font-bold">⏰ ساعت یادآوری:</span>
+                <div class="flex items-center gap-1.5 dir-ltr">
+                    <select id="pickerMinute" class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-sm font-bold outline-none"></select>
+                    <span class="font-bold">:</span>
+                    <select id="pickerHour" class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-sm font-bold outline-none"></select>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="confirmJalaliPicker()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl text-xs font-bold transition">تأیید و ثبت زمان</button>
+                <button onclick="closeJalaliPicker()" class="bg-slate-200 dark:bg-slate-800 px-4 py-2.5 rounded-xl text-xs font-medium">انصراف</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال تنظیم روزهای غیرکاری و تعطیل (Off-Days Settings) -->
+    <div id="offDaysModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2">🔕 تنظیم روزهای غیرکاری (خاموشی آلارم)</h3>
+                <button onclick="closeOffDaysModal()" class="text-slate-400">✕</button>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                روزهایی که در پایین تیک بزنید به عنوان **روز تعطیل / غیرکاری** شناخته می‌شوند. در این روزها آلارم کارهای عادی خاموش می‌ماند و کارهای روتین به صورت خودکار به اولین روز کاری بعد منتقل می‌شوند.
+            </p>
+
+            <div id="offDaysCheckboxes" class="grid grid-cols-2 gap-2.5 py-2"></div>
+
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-600 dark:text-amber-400">
+                💡 نکته: اگر برای یک کار خاص تیک «زنگ در روز تعطیل» را فعال کنید، حتی در روزهای غیرکاری هم زنگ می‌زند.
+            </div>
+
+            <button onclick="closeOffDaysModal()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl text-xs font-bold">ذخیره تنظیمات روزهای غیرکاری</button>
+        </div>
+    </div>
+
+    <!-- مودال زنگ هشدار (Alarm Ringing Modal) -->
+    <div id="alarmModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border-2 border-red-500 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl alarm-pulse">
+            <div class="w-16 h-16 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center text-3xl mx-auto mb-4">⏰</div>
+            <span class="text-xs font-bold px-3 py-1 rounded-full bg-red-500/10 text-red-500">زمان انجام کار فرا رسید!</span>
+            <h3 id="alarmTaskTitle" class="text-xl font-black mt-3 mb-2"></h3>
+            <p id="alarmTaskNotes" class="text-xs text-slate-500 dark:text-slate-400 mb-6"></p>
+
+            <div class="grid grid-cols-3 gap-2 mb-3">
+                <button onclick="snoozeAlarm(5)" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 py-2.5 rounded-xl text-xs font-semibold">💤 +۵ دقیقه</button>
+                <button onclick="snoozeAlarm(15)" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 py-2.5 rounded-xl text-xs font-semibold">💤 +۱۵ دقیقه</button>
+                <button onclick="snoozeToNextWorkday()" class="bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 py-2.5 rounded-xl text-xs font-semibold">🏢 روز کاری بعد</button>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="completeFromAlarm()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl text-sm font-bold">✓ انجام شد</button>
+                <button onclick="stopAlarmSound()" class="flex-1 bg-slate-200 dark:bg-slate-800 py-3 rounded-xl text-sm font-bold">بستن</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال برنامه‌ریزی روز من -->
+    <div id="momentModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-base">☀️ برنامه‌ریزی «روز من»</h3>
+                <button onclick="closePlanMyDay()" class="text-slate-400">✕</button>
+            </div>
+            <div id="momentTasksList" class="max-h-80 overflow-y-auto space-y-2 my-4"></div>
+            <button onclick="closePlanMyDay()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-bold">تأیید</button>
+        </div>
+    </div>
+
+    <!-- مودال پشتیبان‌گیری -->
+    <div id="syncModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-base">🔄 انتقال و پشتیبان‌گیری اطلاعات</h3>
+                <button onclick="closeSyncModal()" class="text-slate-400">✕</button>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="exportTasksFile()" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-xs font-bold">📥 دانلود فایل پشتیبان (JSON)</button>
+                <label class="flex-1 bg-slate-100 dark:bg-slate-800 text-center py-2.5 rounded-xl text-xs font-bold cursor-pointer">
+                    📤 بارگذاری فایل
+                    <input type="file" accept=".json" onchange="importTasksFile(event)" class="hidden">
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- نوار پایین موبایل -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 flex items-center justify-around z-20">
+        <button onclick="setFilter('all')" class="flex flex-col items-center text-xs"><span>📋</span><span>همه</span></button>
+        <button onclick="setFilter('myday')" class="flex flex-col items-center text-xs"><span>☀️</span><span>روز من</span></button>
+        <button onclick="setFilter('today')" class="flex flex-col items-center text-xs"><span>📅</span><span>امروز</span></button>
+        <button onclick="openOffDaysModal()" class="flex flex-col items-center text-xs text-rose-500"><span>🔕</span><span>تعطیلات</span></button>
+    </nav>
+
+    <script>
+        // =========================================================================
+        // ۱. موتور ریاضی تبدیل تقویم میلادی و شمسی (بدون نیاز به کتابخانه خارجی)
+        // =========================================================================
+        const JALALI_MONTHS = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+        const WEEKDAYS_MAP = [
+            { jsDay: 6, name: 'شنبه' },
+            { jsDay: 0, name: 'یکشنبه' },
+            { jsDay: 1, name: 'دوشنبه' },
+            { jsDay: 2, name: 'سه‌شنبه' },
+            { jsDay: 3, name: 'چهارشنبه' },
+            { jsDay: 4, name: 'پنج‌شنبه' },
+            { jsDay: 5, name: 'جمعه' }
+        ];
+
+        function gregorianToJalali(gy, gm, gd) {
+            const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+            let gy2 = (gm > 2) ? (gy + 1) : gy;
+            let days = 355666 + (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) + gd + g_d_m[gm - 1];
+            let jy = -1595 + (33 * Math.floor(days / 12053));
+            days %= 12053;
+            jy += 4 * Math.floor(days / 1461);
+            days %= 1461;
+            if (days > 365) {
+                jy += Math.floor((days - 1) / 365);
+                days = (days - 1) % 365;
+            }
+            let jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+            let jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+            return [jy, jm, jd];
+        }
+
+        function jalaliToGregorian(jy, jm, jd) {
+            jy += 1595;
+            let days = -355668 + (365 * jy) + (Math.floor(jy / 33) * 8) + Math.floor(((jy % 33) + 3) / 4) + jd + ((jm < 7) ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
+            let gy = 400 * Math.floor(days / 146097);
+            days %= 146097;
+            if (days > 36524) {
+                gy += 100 * Math.floor(--days / 36524);
+                days %= 36524;
+                if (days >= 365) days++;
+            }
+            gy += 4 * Math.floor(days / 1461);
+            days %= 1461;
+            if (days > 365) {
+                gy += Math.floor((days - 1) / 365);
+                days = (days - 1) % 365;
+            }
+            let gd = days + 1;
+            const sal_a = [0, 31, ((gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            let gm;
+            for (gm = 0; gm < 13 && gd > sal_a[gm]; gm++) gd -= sal_a[gm];
+            return [gy, gm, gd];
+        }
+
+        function getJalaliMonthLength(jy, jm) {
+            if (jm <= 6) return 31;
+            if (jm <= 11) return 30;
+            // بررسی کبیسه بودن سال شمسی
+            const [gy1, gm1, gd1] = jalaliToGregorian(jy, 12, 30);
+            const [jyCheck] = gregorianToJalali(gy1, gm1, gd1);
+            return jyCheck === jy ? 30 : 29;
+        }
+
+        function formatTimestampToJalali(ts) {
+            if (!ts) return '';
+            const d = new Date(ts);
+            const [jy, jm, jd] = gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            const dayName = WEEKDAYS_MAP.find(w => w.jsDay === d.getDay())?.name || '';
+            return `${dayName} ${jd} ${JALALI_MONTHS[jm - 1]} ${jy} - ساعت ${hh}:${mm}`;
+        }
+
+        // =========================================================================
+        // ۲. ذخیره‌سازی، تنظیمات روزهای غیرکاری و وضعیت برنامه
+        // =========================================================================
+        const STORAGE_KEY = 'TASKFLOW_PRO_V3_TASKS';
+        const OFFDAYS_KEY = 'TASKFLOW_PRO_V3_OFFDAYS';
+
+        // پیش‌فرض روزهای غیرکاری: پنج‌شنبه (4) و جمعه (5)
+        let offDays = JSON.parse(localStorage.getItem(OFFDAYS_KEY)) || [4, 5];
+        let currentFilter = 'all';
+        let selectedTaskId = null;
+        let activeAlarmTaskId = null;
+        let alarmIntervalSound = null;
+
+        // متغیرهای پیکر تقویم شمسی
+        let pickerMode = 'quick'; // 'quick' | 'detail'
+        let quickSelectedTimestamp = null;
+        let pickerJY = 1405, pickerJM = 7, pickerJD = 1;
+
+        const categories = {
+            work: { name: 'کاری و صنعتی', icon: '💼', color: 'text-blue-500 bg-blue-500/10 border-blue-500/20' },
+            personal: { name: 'شخصی', icon: '🏠', color: 'text-purple-500 bg-purple-500/10 border-purple-500/20' },
+            shopping: { name: 'خرید و تدارکات', icon: '🛒', color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' },
+            finance: { name: 'مالی و حسابداری', icon: '💳', color: 'text-amber-500 bg-amber-500/10 border-amber-500/20' }
+        };
+
+        let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [
+            {
+                id: 't1',
+                title: 'کنترل کیفیت خط تولید و بررسی پارامترهای راکتور',
+                category: 'work',
+                priority: 'high',
+                reminderTs: Date.now() + 3600 * 1000,
+                repeat: 'workdays',
+                forceOnHoliday: false,
+                myDay: true,
+                completed: false,
+                alarmFired: false,
+                notes: 'در روزهای ۵شنبه و جمعه آلارم این کار به صورت خودکار خاموش است.',
+                subtasks: [
+                    { id: 's1', text: 'ثبت دمای خروجی مبدل حرارتی', done: true },
+                    { id: 's2', text: 'بررسی pH محلول نهایی', done: false }
+                ]
+            }
+        ];
+
+        function saveToStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+            localStorage.setItem(OFFDAYS_KEY, JSON.stringify(offDays));
+        }
+
+        // =========================================================================
+        // ۳. منطق روزهای غیرکاری (Off-Days) و انتقال خودکار به روز کاری بعد
+        // =========================================================================
+        function isDayOff(dateObj) {
+            return offDays.includes(dateObj.getDay());
+        }
+
+        function getNextWorkdayTimestamp(baseTimestamp) {
+            let nextDate = new Date(baseTimestamp);
+            nextDate.setDate(nextDate.getDate() + 1);
+            // حلقه تا پیدا کردن اولین روزی که جزو روزهای غیرکاری نباشد (حداکثر ۷ روز)
+            let safety = 0;
+            while (isDayOff(nextDate) && safety < 7) {
+                nextDate.setDate(nextDate.getDate() + 1);
+                safety++;
+            }
+            return nextDate.getTime();
+        }
+
+        function updateOffDaysUI() {
+            const names = offDays.map(d => WEEKDAYS_MAP.find(w => w.jsDay === d)?.name).filter(Boolean);
+            const label = document.getElementById('offDaysBtnLabel');
+            label.innerText = names.length > 0 ? `غیرکاری: ${names.join('، ')}` : 'بدون روز تعطیل';
+
+            // نمایش بنر در صورتی که امروز روز غیرکاری باشد
+            const banner = document.getElementById('holidayBanner');
+            if (isDayOff(new Date())) {
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        function openOffDaysModal() {
+            const container = document.getElementById('offDaysCheckboxes');
+            container.innerHTML = WEEKDAYS_MAP.map(day => {
+                const checked = offDays.includes(day.jsDay);
+                return `
+                    <label class="flex items-center justify-between p-3 rounded-xl border cursor-pointer transition ${checked ? 'border-rose-500 bg-rose-500/10 text-rose-500 font-bold' : 'border-slate-200 dark:border-slate-800'}">
+                        <span class="text-xs">${day.name}</span>
+                        <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleOffDay(${day.jsDay})" class="rounded text-rose-500">
+                    </label>
+                `;
+            }).join('');
+            document.getElementById('offDaysModal').classList.remove('hidden');
+            document.getElementById('offDaysModal').classList.add('flex');
+        }
+
+        function toggleOffDay(jsDay) {
+            if (offDays.includes(jsDay)) {
+                offDays = offDays.filter(d => d !== jsDay);
+            } else {
+                offDays.push(jsDay);
+            }
+            saveToStorage();
+            updateOffDaysUI();
+            openOffDaysModal();
+            renderApp();
+        }
+
+        function closeOffDaysModal() {
+            document.getElementById('offDaysModal').classList.add('hidden');
+            document.getElementById('offDaysModal').classList.remove('flex');
+        }
+
+        // =========================================================================
+        // ۴. تقویم شمسی تعاملی (Jalali Date & Time Picker)
+        // =========================================================================
+        function initTimeSelects() {
+            const hSel = document.getElementById('pickerHour');
+            const mSel = document.getElementById('pickerMinute');
+            hSel.innerHTML = Array.from({ length: 24 }, (_, i) => `<option value="${i}">${String(i).padStart(2, '0')}</option>`).join('');
+            mSel.innerHTML = Array.from({ length: 12 }, (_, i) => `<option value="${i * 5}">${String(i * 5).padStart(2, '0')}</option>`).join('');
+        }
+        initTimeSelects();
+
+        function openJalaliPicker(mode) {
+            pickerMode = mode;
+            let baseDate = new Date();
+            if (mode === 'quick' && quickSelectedTimestamp) {
+                baseDate = new Date(quickSelectedTimestamp);
+            } else if (mode === 'detail' && selectedTaskId) {
+                const t = tasks.find(x => x.id === selectedTaskId);
+                if (t && t.reminderTs) baseDate = new Date(t.reminderTs);
+            }
+
+            const [jy, jm, jd] = gregorianToJalali(baseDate.getFullYear(), baseDate.getMonth() + 1, baseDate.getDate());
+            pickerJY = jy; pickerJM = jm; pickerJD = jd;
+
+            document.getElementById('pickerHour').value = baseDate.getHours();
+            document.getElementById('pickerMinute').value = Math.floor(baseDate.getMinutes() / 5) * 5;
+
+            renderJalaliPickerGrid();
+            document.getElementById('jalaliPickerModal').classList.remove('hidden');
+            document.getElementById('jalaliPickerModal').classList.add('flex');
+        }
+
+        function changePickerMonth(delta) {
+            pickerJM += delta;
+            if (pickerJM > 12) { pickerJM = 1; pickerJY++; }
+            if (pickerJM < 1) { pickerJM = 12; pickerJY--; }
+            const maxDays = getJalaliMonthLength(pickerJY, pickerJM);
+            if (pickerJD > maxDays) pickerJD = maxDays;
+            renderJalaliPickerGrid();
+        }
+
+        function renderJalaliPickerGrid() {
+            document.getElementById('pickerMonthYearLabel').innerText = `${JALALI_MONTHS[pickerJM - 1]} ${pickerJY}`;
+            const daysCount = getJalaliMonthLength(pickerJY, pickerJM);
+            const [gy, gm, gd] = jalaliToGregorian(pickerJY, pickerJM, 1);
+            const firstDayJS = new Date(gy, gm - 1, gd).getDay();
+            // تبدیل اندیس روز هفته به پایه شنبه (شنبه = 0 تا جمعه = 6)
+            const startOffset = (firstDayJS + 1) % 7;
+
+            let html = '';
+            for (let i = 0; i < startOffset; i++) {
+                html += `<div></div>`;
+            }
+
+            for (let d = 1; d <= daysCount; d++) {
+                const [cGy, cGm, cGd] = jalaliToGregorian(pickerJY, pickerJM, d);
+                const cellDate = new Date(cGy, cGm - 1, cGd);
+                const isHoliday = isDayOff(cellDate);
+                const isSelected = d === pickerJD;
+
+                let cls = "h-9 rounded-xl text-xs flex flex-col items-center justify-center cursor-pointer transition ";
+                if (isSelected) {
+                    cls += "bg-blue-600 text-white font-bold shadow-md shadow-blue-500/30";
+                } else if (isHoliday) {
+                    cls += "bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 font-medium";
+                } else {
+                    cls += "hover:bg-slate-100 dark:hover:bg-slate-800";
+                }
+
+                html += `<button onclick="selectPickerDay(${d})" class="${cls}">
+                    <span>${d}</span>
+                </button>`;
+            }
+            document.getElementById('pickerDaysGrid').innerHTML = html;
+        }
+
+        function selectPickerDay(d) {
+            pickerJD = d;
+            renderJalaliPickerGrid();
+        }
+
+        function selectQuickPreset(addDays, addMinutes) {
+            let target = new Date();
+            if (addDays > 0) {
+                target.setDate(target.getDate() + addDays);
+                target.setHours(9, 0, 0, 0);
+            } else {
+                target = new Date(Date.now() + addMinutes * 60000);
+            }
+            applyPickedTimestamp(target.getTime());
+        }
+
+        function selectNextWorkdayPreset() {
+            let target = new Date();
+            target.setHours(9, 0, 0, 0);
+            const nextTs = getNextWorkdayTimestamp(target.getTime());
+            applyPickedTimestamp(nextTs);
+        }
+
+        function confirmJalaliPicker() {
+            const hh = parseInt(document.getElementById('pickerHour').value, 10);
+            const mm = parseInt(document.getElementById('pickerMinute').value, 10);
+            const [gy, gm, gd] = jalaliToGregorian(pickerJY, pickerJM, pickerJD);
+            const finalDate = new Date(gy, gm - 1, gd, hh, mm, 0, 0);
+            applyPickedTimestamp(finalDate.getTime());
+        }
+
+        function applyPickedTimestamp(ts) {
+            if (pickerMode === 'quick') {
+                quickSelectedTimestamp = ts;
+                document.getElementById('quickJalaliLabel').innerText = formatTimestampToJalali(ts);
+                document.getElementById('clearQuickDateBtn').classList.remove('hidden');
+            } else if (pickerMode === 'detail' && selectedTaskId) {
+                const task = tasks.find(t => t.id === selectedTaskId);
+                if (task) {
+                    task.reminderTs = ts;
+                    task.alarmFired = false;
+                    saveToStorage();
+                    renderApp();
+                }
+            }
+            closeJalaliPicker();
+        }
+
+        function clearQuickDate() {
+            quickSelectedTimestamp = null;
+            document.getElementById('quickJalaliLabel').innerText = 'انتخاب تاریخ و ساعت شمسی';
+            document.getElementById('clearQuickDateBtn').classList.add('hidden');
+        }
+
+        function closeJalaliPicker() {
+            document.getElementById('jalaliPickerModal').classList.add('hidden');
+            document.getElementById('jalaliPickerModal').classList.remove('flex');
+        }
+
+        // =========================================================================
+        // ۵. رادار بررسی یادآورها با فیلتر هوشمند روزهای غیرکاری
+        // =========================================================================
+        setInterval(() => {
+            const now = new Date();
+            const nowTs = now.getTime();
+            const todayIsOff = isDayOff(now);
+
+            tasks.forEach(task => {
+                if (!task.completed && task.reminderTs && !task.alarmFired) {
+                    if (nowTs >= task.reminderTs) {
+                        // بررسی اینکه آیا امروز روز غیرکاری است و تسک اجازه زنگ زدن در تعطیلات را ندارد
+                        if (todayIsOff && !task.forceOnHoliday) {
+                            // انتقال خودکار به اولین روز کاری بعدی در همان ساعت
+                            task.reminderTs = getNextWorkdayTimestamp(task.reminderTs);
+                            task.alarmFired = false;
+                            saveToStorage();
+                            renderApp();
+                        } else {
+                            triggerAlarmForTask(task);
+                        }
+                    }
+                }
+            });
+        }, 4000);
+
+        function playSynthesizedAlarmBeep() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                [587.33, 880, 587.33, 880].forEach((freq, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.18);
+                    gain.gain.setValueAtTime(0.25, ctx.currentTime + idx * 0.18);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (idx + 1) * 0.17);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + idx * 0.18);
+                    osc.stop(ctx.currentTime + (idx + 1) * 0.18);
+                });
+            } catch (e) {}
+        }
+
+        function triggerAlarmForTask(task) {
+            task.alarmFired = true;
+            activeAlarmTaskId = task.id;
+            saveToStorage();
+            renderApp();
+
+            document.getElementById('alarmTaskTitle').innerText = task.title;
+            document.getElementById('alarmTaskNotes').innerText = task.notes || formatTimestampToJalali(task.reminderTs);
+            document.getElementById('alarmModal').classList.remove('hidden');
+            document.getElementById('alarmModal').classList.add('flex');
+
+            playSynthesizedAlarmBeep();
+            if (alarmIntervalSound) clearInterval(alarmIntervalSound);
+            alarmIntervalSound = setInterval(playSynthesizedAlarmBeep, 3000);
+
+            if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("⏰ یادآور: " + task.title, {
+                    body: formatTimestampToJalali(task.reminderTs),
+                    requireInteraction: true
+                });
+            }
+        }
+
+        function stopAlarmSound() {
+            if (alarmIntervalSound) { clearInterval(alarmIntervalSound); alarmIntervalSound = null; }
+            document.getElementById('alarmModal').classList.add('hidden');
+            document.getElementById('alarmModal').classList.remove('flex');
+        }
+
+        function snoozeAlarm(minutes) {
+            const task = tasks.find(t => t.id === activeAlarmTaskId);
+            if (task) {
+                task.reminderTs = Date.now() + minutes * 60000;
+                task.alarmFired = false;
+                saveToStorage();
+                renderApp();
+            }
+            stopAlarmSound();
+        }
+
+        function snoozeToNextWorkday() {
+            const task = tasks.find(t => t.id === activeAlarmTaskId);
+            if (task) {
+                task.reminderTs = getNextWorkdayTimestamp(task.reminderTs || Date.now());
+                task.alarmFired = false;
+                saveToStorage();
+                renderApp();
+            }
+            stopAlarmSound();
+        }
+
+        function completeFromAlarm() {
+            if (activeAlarmTaskId) toggleTaskComplete(activeAlarmTaskId);
+            stopAlarmSound();
+        }
+
+        // =========================================================================
+        // ۶. مدیریت کارها (افزودن، تیک زدن، تکرار هوشمند کاری)
+        // =========================================================================
+        function addNewTask() {
+            const titleEl = document.getElementById('quickTitle');
+            const title = titleEl.value.trim();
+            if (!title) return;
+
+            const newTask = {
+                id: 'task_' + Date.now(),
+                title,
+                category: document.getElementById('quickCategory').value,
+                priority: document.getElementById('quickPriority').value,
+                reminderTs: quickSelectedTimestamp,
+                repeat: document.getElementById('quickRepeat').value,
+                forceOnHoliday: document.getElementById('quickForceHoliday').checked,
+                myDay: currentFilter === 'myday' || currentFilter === 'today',
+                completed: false,
+                alarmFired: false,
+                notes: '',
+                subtasks: []
+            };
+
+            tasks.unshift(newTask);
+            titleEl.value = '';
+            document.getElementById('quickForceHoliday').checked = false;
+            clearQuickDate();
+            saveToStorage();
+            renderApp();
+        }
+
+        function toggleTaskComplete(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            if (!task.completed && task.repeat !== 'none' && task.reminderTs) {
+                if (task.repeat === 'workdays') {
+                    task.reminderTs = getNextWorkdayTimestamp(task.reminderTs);
+                } else if (task.repeat === 'daily') {
+                    task.reminderTs += 86400000;
+                    if (!task.forceOnHoliday && isDayOff(new Date(task.reminderTs))) {
+                        task.reminderTs = getNextWorkdayTimestamp(task.reminderTs);
+                    }
+                } else if (task.repeat === 'weekly') {
+                    task.reminderTs += 7 * 86400000;
+                }
+                task.alarmFired = false;
+            } else {
+                task.completed = !task.completed;
+            }
+
+            saveToStorage();
+            renderApp();
+        }
+
+        function getTimeBucket(task) {
+            if (task.completed) return 'completed';
+            if (!task.reminderTs) return 'someday';
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const tomorrowStart = todayStart + 86400000;
+            const afterTomorrowStart = todayStart + 2 * 86400000;
+
+            if (task.reminderTs < tomorrowStart) return 'today';
+            if (task.reminderTs >= tomorrowStart && task.reminderTs < afterTomorrowStart) return 'tomorrow';
+            return 'upcoming';
+        }
+
+        function setFilter(f) {
+            currentFilter = f;
+            const titles = {
+                all: '📋 همه کارها', myday: '☀️ تمرکز روز من', today: '📅 یادآورهای امروز',
+                upcoming: '⏳ فردا و آینده', high: '🔥 اولویت بالا'
+            };
+            document.getElementById('currentViewTitle').innerText = titles[f] || 'لیست کارها';
+            renderApp();
+        }
+
+        function renderApp() {
+            updateOffDaysUI();
+            const searchQuery = (document.getElementById('searchInput')?.value || '').toLowerCase();
+            const activeTasks = tasks.filter(t => !t.completed);
+
+            document.getElementById('count-all').innerText = activeTasks.length;
+            document.getElementById('count-myday').innerText = activeTasks.filter(t => t.myDay).length;
+            document.getElementById('count-today').innerText = activeTasks.filter(t => getTimeBucket(t) === 'today').length;
+            document.getElementById('count-upcoming').innerText = activeTasks.filter(t => ['tomorrow', 'upcoming'].includes(getTimeBucket(t))).length;
+            document.getElementById('count-high').innerText = activeTasks.filter(t => t.priority === 'high').length;
+
+            document.getElementById('categoryList').innerHTML = Object.entries(categories).map(([key, cat]) => {
+                const count = activeTasks.filter(t => t.category === key).length;
+                return `
+                    <button onclick="setFilter('cat_${key}')" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <span class="flex items-center gap-2.5"><span>${cat.icon}</span> ${cat.name}</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800">${count}</span>
+                    </button>
+                `;
+            }).join('');
+
+            let filtered = tasks.filter(t => {
+                if (searchQuery && !t.title.toLowerCase().includes(searchQuery)) return false;
+                if (currentFilter === 'myday') return t.myDay;
+                if (currentFilter === 'today') return getTimeBucket(t) === 'today';
+                if (currentFilter === 'upcoming') return ['tomorrow', 'upcoming'].includes(getTimeBucket(t));
+                if (currentFilter === 'high') return t.priority === 'high';
+                if (currentFilter.startsWith('cat_')) return t.category === currentFilter.replace('cat_', '');
+                return true;
+            });
+
+            const groups = {
+                today: { title: 'امروز', items: [] },
+                tomorrow: { title: 'فردا', items: [] },
+                upcoming: { title: 'آینده', items: [] },
+                someday: { title: 'بدون زمان مشخص', items: [] },
+                completed: { title: 'انجام‌شده‌ها', items: [] }
+            };
+            filtered.forEach(t => groups[getTimeBucket(t)].items.push(t));
+
+            document.getElementById('tasksContainer').innerHTML = Object.entries(groups).map(([k, g]) => {
+                if (g.items.length === 0) return '';
+                return `
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2 px-1">
+                            <h3 class="text-xs font-bold text-slate-400">${g.title}</h3>
+                            <span class="text-[11px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-500">${g.items.length}</span>
+                        </div>
+                        <div class="space-y-2">${g.items.map(renderTaskCard).join('')}</div>
+                    </div>
+                `;
+            }).join('') || `<div class="text-center py-16 text-slate-400 text-sm">هیچ کاری در این بخش ثبت نشده است. ✨</div>`;
+
+            const totalToday = tasks.filter(t => t.myDay || getTimeBucket(t) === 'today').length;
+            const doneToday = tasks.filter(t => (t.myDay || getTimeBucket(t) === 'today') && t.completed).length;
+            const pct = totalToday === 0 ? 0 : Math.round((doneToday / totalToday) * 100);
+            document.getElementById('progressPercent').innerText = pct + '%';
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressSubtext').innerText = `${doneToday} از ${totalToday} کار امروز تکمیل شد`;
+
+            if (selectedTaskId) populateDetailDrawer();
+        }
+
+        function renderTaskCard(task) {
+            const cat = categories[task.category] || categories.work;
+            const fallsOnOffDay = task.reminderTs && isDayOff(new Date(task.reminderTs)) && !task.forceOnHoliday;
+
+            return `
+                <div onclick="openDetailDrawer('${task.id}')" class="group bg-white dark:bg-slate-900 hover:border-blue-500/50 border ${selectedTaskId === task.id ? 'border-blue-500' : 'border-slate-200/80 dark:border-slate-800'} rounded-2xl p-3.5 flex items-center justify-between gap-3 cursor-pointer transition shadow-sm">
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <button onclick="event.stopPropagation(); toggleTaskComplete('${task.id}')" 
+                            class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-400'}">
+                            ${task.completed ? '✓' : ''}
+                        </button>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-medium truncate ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</p>
+                            <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                                <span class="text-[10px] px-2 py-0.5 rounded-md border ${cat.color}">${cat.icon} ${cat.name}</span>
+                                ${task.priority === 'high' ? `<span class="text-[10px] px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-500 font-bold">🔥 فوری</span>` : ''}
+                                ${task.reminderTs ? `<span class="text-[11px] text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md font-medium">⏰ ${formatTimestampToJalali(task.reminderTs)}</span>` : ''}
+                                ${fallsOnOffDay ? `<span class="text-[10px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-md">🔕 مصادف با تعطیلی (انتقال خودکار)</span>` : ''}
+                                ${task.forceOnHoliday ? `<span class="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-md">🔔 فعال در تعطیلات</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- پنل جزئیات ---
+        function openDetailDrawer(id) {
+            selectedTaskId = id;
+            document.getElementById('detailDrawer').classList.remove('hidden');
+            document.getElementById('detailDrawer').classList.add('flex');
+            renderApp();
+        }
+
+        function closeDetailDrawer() {
+            selectedTaskId = null;
+            document.getElementById('detailDrawer').classList.add('hidden');
+            document.getElementById('detailDrawer').classList.remove('flex');
+            renderApp();
+        }
+
+        function populateDetailDrawer() {
+            const task = tasks.find(t => t.id === selectedTaskId);
+            if (!task) return closeDetailDrawer();
+
+            document.getElementById('detailTitle').value = task.title;
+            document.getElementById('detailJalaliDisplay').innerText = task.reminderTs ? formatTimestampToJalali(task.reminderTs) : 'بدون زمان یادآور';
+            document.getElementById('detailForceHoliday').checked = !!task.forceOnHoliday;
+            document.getElementById('detailRepeat').value = task.repeat || 'none';
+            document.getElementById('detailPriority').value = task.priority || 'medium';
+            document.getElementById('detailNotes').value = task.notes || '';
+
+            const myDayBtn = document.getElementById('detailMyDayBtn');
+            myDayBtn.className = task.myDay 
+                ? "w-full py-2 px-4 rounded-xl border border-amber-500 bg-amber-500/10 text-amber-500 text-xs font-bold"
+                : "w-full py-2 px-4 rounded-xl border border-slate-300 dark:border-slate-700 text-xs";
+            myDayBtn.innerText = task.myDay ? "☀️ در لیست تمرکز «روز من»" : "+ افزودن به «روز من»";
+
+            document.getElementById('subtasksList').innerHTML = (task.subtasks || []).map(sub => `
+                <div class="flex items-center justify-between bg-white dark:bg-slate-900 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <label class="flex items-center gap-2 text-xs cursor-pointer flex-1">
+                        <input type="checkbox" ${sub.done ? 'checked' : ''} onchange="toggleSubtask('${sub.id}')">
+                        <span class="${sub.done ? 'line-through text-slate-400' : ''}">${sub.text}</span>
+                    </label>
+                    <button onclick="removeSubtask('${sub.id}')" class="text-slate-400 hover:text-rose-500 text-xs">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function saveDetailChanges() {
+            const task = tasks.find(t => t.id === selectedTaskId);
+            if (!task) return;
+            task.title = document.getElementById('detailTitle').value;
+            task.forceOnHoliday = document.getElementById('detailForceHoliday').checked;
+            task.repeat = document.getElementById('detailRepeat').value;
+            task.priority = document.getElementById('detailPriority').value;
+            task.notes = document.getElementById('detailNotes').value;
+            saveToStorage();
+            renderApp();
+        }
+
+        function toggleDetailMyDay() {
+            const task = tasks.find(t => t.id === selectedTaskId);
+            if (task) { task.myDay = !task.myDay; saveToStorage(); renderApp(); }
+        }
+
+        function addSubtask() {
+            const input = document.getElementById('newSubtaskInput');
+            if (!input.value.trim() || !selectedTaskId) return;
+            const task = tasks.find(t => t.id === selectedTaskId);
+            task.subtasks = task.subtasks || [];
+            task.subtasks.push({ id: 's_' + Date.now(), text: input.value.trim(), done: false });
+            input.value = '';
+            saveToStorage();
+            renderApp();
+        }
+
+        function toggleSubtask(sid) {
+            const task = tasks.find(t => t.id === selectedTaskId);
+            const sub = task.subtasks.find(s => s.id === sid);
+            if (sub) sub.done = !sub.done;
+            saveToStorage();
+            renderApp();
+        }
+
+        function removeSubtask(sid) {
+            const task = tasks.find(t => t.id === selectedTaskId);
+            task.subtasks = task.subtasks.filter(s => s.id !== sid);
+            saveToStorage();
+            renderApp();
+        }
+
+        function deleteSelectedTask() {
+            tasks = tasks.filter(t => t.id !== selectedTaskId);
+            closeDetailDrawer();
+            saveToStorage();
+            renderApp();
+        }
+
+        function clearCompleted() {
+            tasks = tasks.filter(t => !t.completed);
+            saveToStorage();
+            renderApp();
+        }
+
+        // --- هدر تاریخ شمسی زنده ---
+        function updateLiveHeader() {
+            document.getElementById('liveJalaliDate').innerText = formatTimestampToJalali(Date.now());
+        }
+        setInterval(updateLiveHeader, 15000);
+        updateLiveHeader();
+
+        // --- سایر مودال‌ها ---
+        function openPlanMyDay() {
+            const list = document.getElementById('momentTasksList');
+            list.innerHTML = tasks.filter(t => !t.completed).map(t => `
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-100 dark:bg-slate-800">
+                    <span class="text-xs font-medium">${t.title}</span>
+                    <button onclick="toggleMomentTask('${t.id}')" class="px-3 py-1 rounded-lg text-xs font-bold ${t.myDay ? 'bg-amber-500 text-white' : 'bg-slate-300 dark:bg-slate-700'}">
+                        ${t.myDay ? '☀️ در روز من' : '+ افزودن'}
+                    </button>
+                </div>
+            `).join('');
+            document.getElementById('momentModal').classList.remove('hidden');
+            document.getElementById('momentModal').classList.add('flex');
+        }
+        function toggleMomentTask(id) {
+            const t = tasks.find(x => x.id === id);
+            if (t) t.myDay = !t.myDay;
+            saveToStorage(); openPlanMyDay(); renderApp();
+        }
+        function closePlanMyDay() {
+            document.getElementById('momentModal').classList.add('hidden');
+            document.getElementById('momentModal').classList.remove('flex');
+        }
+        function openSyncModal() {
+            document.getElementById('syncModal').classList.remove('hidden');
+            document.getElementById('syncModal').classList.add('flex');
+        }
+        function closeSyncModal() {
+            document.getElementById('syncModal').classList.add('hidden');
+            document.getElementById('syncModal').classList.remove('flex');
+        }
+        function exportTasksFile() {
+            const blob = new Blob([JSON.stringify({ tasks, offDays }, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `TaskFlow_Jalali_Backup.json`;
+            a.click();
+        }
+        function importTasksFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const r = new FileReader();
+            r.onload = ev => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    tasks = data.tasks || data;
+                    if (data.offDays) offDays = data.offDays;
+                    saveToStorage(); renderApp(); closeSyncModal();
+                } catch (err) { alert('فایل نامعتبر است'); }
+            };
+            r.readAsText(file);
+        }
+        function requestNotificationPermission() {
+            if ("Notification" in window) Notification.requestPermission();
+        }
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        renderApp();
+    </script>
+</body>
+</html>
